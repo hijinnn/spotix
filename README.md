@@ -1,7 +1,7 @@
 # spotix
 
 경북여행(gb-voyage) 상품 페이지의 품절 뱃지가 사라지면 텔레그램으로 알려주는 체커입니다.
-GitHub Actions가 10분마다 `check.mjs`를 실행합니다.
+GitHub Actions가 `check.mjs`를 계속 실행하며 30초마다 확인합니다.
 
 ## 감시 대상 바꾸기
 `config.json`의 `events`에 `name`, `url`, `option_text`(옵션 이름의 일부)를 넣습니다.
