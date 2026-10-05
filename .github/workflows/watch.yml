@@ -1,14 +1,19 @@
 name: ticket-watch
 on:
   schedule:
-    - cron: "*/10 * * * *"   # 10분마다 (GitHub 사정으로 몇 분 늦어질 수 있음)
+    # 한 번 실행이 55분 동안 1분마다 확인한다. 15분마다 다음 실행을 예약해 두면
+    # 앞 실행이 끝나자마자 이어서 시작한다 (concurrency로 동시에 1개만 실행, 1개만 대기).
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
-concurrency: ticket-watch
+concurrency:
+  group: ticket-watch
+  cancel-in-progress: false
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,6 +21,8 @@ jobs:
       - run: npm install && npx playwright install --with-deps chromium
       - run: node check.mjs
         env:
+          INTERVAL_SEC: 60
+          DURATION_MIN: 55
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       - uses: actions/upload-artifact@v4
