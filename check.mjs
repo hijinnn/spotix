@@ -41,27 +41,41 @@ async function optionStatus(page, optionText) {
   }, optionText);
 }
 
+// INTERVAL_SEC, DURATION_MIN이 있으면 한 번의 실행 안에서 그 간격으로 반복 확인한다.
+const intervalMs = Number(process.env.INTERVAL_SEC || 0) * 1000;
+const endAt = Date.now() + Number(process.env.DURATION_MIN || 0) * 60000;
+
+async function checkAll(page) {
+  for (const ev of cfg.events) {
+    try {
+      await page.goto(ev.url, { waitUntil: "networkidle", timeout: 60000 });
+      await page.waitForTimeout(2000);
+      const status = await optionStatus(page, ev.option_text);
+      const prev = state[ev.url]?.status ?? "sold_out";
+      console.log(`${new Date().toISOString()} ${ev.name}: ${status}`);
+      if (status === "available" && prev !== "available") {
+        await notify(`🎫 품절 해제! ${ev.name}\n${ev.url}`);
+      }
+      if (status === "not_found") {
+        console.warn("옵션을 찾지 못했어요. 페이지 구조가 바뀌었을 수 있어요.");
+        await page.screenshot({ path: "debug.png", fullPage: true });
+      } else {
+        state[ev.url] = { status, checked: new Date().toISOString() };
+      }
+    } catch (e) {
+      console.error(`${ev.name}: 조회 실패`, e.message);
+    }
+  }
+  fs.writeFileSync(STATE, JSON.stringify(state, null, 2));
+}
+
 const browser = await chromium.launch();
 const page = await browser.newPage({ locale: "ko-KR" });
-for (const ev of cfg.events) {
-  try {
-    await page.goto(ev.url, { waitUntil: "networkidle", timeout: 60000 });
-    await page.waitForTimeout(2000);
-    const status = await optionStatus(page, ev.option_text);
-    const prev = state[ev.url]?.status ?? "sold_out";
-    console.log(`${ev.name}: ${status}`);
-    if (status === "available" && prev !== "available") {
-      await notify(`🎫 품절 해제! ${ev.name}\n${ev.url}`);
-    }
-    if (status === "not_found") {
-      console.warn("옵션을 찾지 못했어요. 페이지 구조가 바뀌었을 수 있어요.");
-      await page.screenshot({ path: "debug.png", fullPage: true });
-    } else {
-      state[ev.url] = { status, checked: new Date().toISOString() };
-    }
-  } catch (e) {
-    console.error(`${ev.name}: 조회 실패`, e.message);
-  }
-}
+do {
+  const started = Date.now();
+  await checkAll(page);
+  const wait = intervalMs - (Date.now() - started);
+  if (!intervalMs || Date.now() + wait >= endAt) break;
+  await new Promise((r) => setTimeout(r, Math.max(wait, 0)));
+} while (true);
 await browser.close();
-fs.writeFileSync(STATE, JSON.stringify(state, null, 2));
