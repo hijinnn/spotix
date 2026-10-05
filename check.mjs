@@ -10,12 +10,23 @@ const state = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, "utf8")) 
 
 async function notify(msg) {
   const { TELEGRAM_BOT_TOKEN: token, TELEGRAM_CHAT_ID: chat } = process.env;
-  if (!token || !chat) return console.log("[텔레그램 미설정]", msg);
+  if (!token || !chat) {
+    console.log("[텔레그램 미설정]", msg);
+    return false;
+  }
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chat, text: msg }),
   });
   if (!res.ok) console.error("텔레그램 전송 실패", res.status, await res.text());
+  return res.ok;
+}
+
+// TEST_ALERT=true면 테스트 메시지만 보내고 끝낸다. 실패하면 실행이 빨간색으로 표시된다.
+if (process.env.TEST_ALERT === "true") {
+  const ok = await notify("✅ spotix 테스트 알림이에요. 이 메시지가 보이면 텔레그램 설정이 잘 된 거예요.");
+  console.log(ok ? "테스트 알림 전송 성공" : "테스트 알림 전송 실패");
+  process.exit(ok ? 0 : 1);
 }
 
 // 옵션 이름이 있는 "행"(같은 모양의 형제가 여럿인 조상) 안에 품절 뱃지가 있는지 본다.
