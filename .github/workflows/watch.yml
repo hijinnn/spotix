@@ -1,7 +1,7 @@
 name: ticket-watch
 on:
   schedule:
-    # 한 번 실행이 55분 동안 1분마다 확인한다. 15분마다 다음 실행을 예약해 두면
+    # 한 번 실행이 55분 동안 30초마다 확인한다. 15분마다 다음 실행을 예약해 두면
     # 앞 실행이 끝나자마자 이어서 시작한다 (concurrency로 동시에 1개만 실행, 1개만 대기).
     - cron: "*/15 * * * *"
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
       - run: node check.mjs
         env:
           TEST_ALERT: ${{ inputs.test_alert }}
-          INTERVAL_SEC: 60
+          INTERVAL_SEC: 30
           DURATION_MIN: 55
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
