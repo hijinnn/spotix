@@ -56,6 +56,8 @@ async function optionStatus(page, optionText) {
 const intervalMs = Number(process.env.INTERVAL_SEC || 0) * 1000;
 const endAt = Date.now() + Number(process.env.DURATION_MIN || 0) * 60000;
 
+const kst = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" });
+
 async function checkAll(page) {
   for (const ev of cfg.events) {
     try {
@@ -63,7 +65,7 @@ async function checkAll(page) {
       await page.waitForTimeout(2000);
       const status = await optionStatus(page, ev.option_text);
       const prev = state[ev.url]?.status ?? "sold_out";
-      console.log(`${new Date().toISOString()} ${ev.name}: ${status}`);
+      console.log(`[${kst()} KST] ${ev.name}: ${status}`);
       if (status === "available" && prev !== "available") {
         await notify(`🎫 품절 해제! ${ev.name}\n${ev.url}`);
       }
